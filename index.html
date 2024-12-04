@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة جيوباردي</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>لعبة جيوباردي</h1>
+        
+        <!-- أزرار التحكم -->
+        <div class="game-controls">
+            <button id="newGameButton" class="btn primary">لعبة جديدة</button>
+            <button id="restartButton" class="btn secondary">إعادة ضبط</button>
+            <button id="settingsButton" class="btn">الإعدادات</button>
+        </div>
+
+        <!-- معلومات اللاعبين -->
+        <div class="players-info">
+            <div id="players-list"></div>
+            <div id="current-player">
+                دور اللاعب: <span></span>
+            </div>
+        </div>
+
+        <!-- لوحة اللعب -->
+        <div class="game-board"></div>
+
+        <!-- نافذة الإعدادات -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>إعدادات اللعبة</h2>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="playerCount">عدد اللاعبين:</label>
+                        <input type="number" id="playerCount" min="1" max="4" value="2">
+                    </div>
+                    <div class="form-group">
+                        <h3>اختر الفئات:</h3>
+                        <div id="categories-list"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="startButton" class="btn primary">ابدأ اللعبة</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نافذة السؤال -->
+        <div id="answer-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div class="question"></div>
+                <div class="answer-input">
+                    <input type="text" id="answer-input" placeholder="اكتب إجابتك هنا" dir="rtl">
+                    <button id="submit-answer" class="btn primary">تحقق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
