@@ -207,37 +207,29 @@ function checkAnswer(category, points, userAnswer) {
         return;
     }
 
-    const correctAnswer = gameData[category][points].answer;
+    const questionData = gameData[category][points];
+    const correctAnswer = questionData.answer;
     const isCorrect = compareAnswers(userAnswer, correctAnswer);
     
     if (isCorrect) {
         // إضافة النقاط للاعب الحالي
         players[currentPlayerIndex].score += points;
-        alert('إجابة صحيحة! 🎉');
+        alert(`إجابة صحيحة! 🎉\nالإجابة الكاملة هي: ${correctAnswer}`);
         
         // تحديث حالة البطاقة
         completedAnswers.add(`${category}-${points}`);
-        
-        // إغلاق النافذة المنبثقة
-        closeModal(document.getElementById('answer-modal'));
-        
-        // تحديث دور اللاعب
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-        
-        // تحديث واجهة المستخدم
-        updateUI();
     } else {
-        alert(`إجابة خاطئة. الإجابة الصحيحة هي: ${correctAnswer}`);
-        
-        // إغلاق النافذة المنبثقة
-        closeModal(document.getElementById('answer-modal'));
-        
-        // تحديث دور اللاعب
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-        
-        // تحديث واجهة المستخدم
-        updateUI();
+        alert(`إجابة خاطئة.\nالإجابة الصحيحة هي: ${correctAnswer}`);
     }
+    
+    // إغلاق النافذة المنبثقة
+    closeModal(document.getElementById('answer-modal'));
+    
+    // تحديث دور اللاعب
+    currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    
+    // تحديث واجهة المستخدم
+    updateUI();
 }
 
 // إعادة تعيين اللعبة بالكامل
@@ -475,38 +467,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // مقارنة الإجابات
 function compareAnswers(userAnswer, correctAnswer) {
-    const normalizedUserAnswer = userAnswer.trim().toLowerCase().replace(/[؟.,!]/g, '');
-    const normalizedCorrectAnswer = correctAnswer.toLowerCase().replace(/[؟.,!]/g, '');
-    
-    // تقسيم الإجابة الصحيحة والإجابة المدخلة إلى كلمات
-    const correctWords = normalizedCorrectAnswer.split(/\s+/);
-    const userWords = normalizedUserAnswer.split(/\s+/);
-
-    // الكلمات العامة التي لا تعتبر إجابة صحيحة بمفردها
-    const commonWords = ['نهر', 'جبل', 'مدينة', 'بحر', 'دولة', 'قارة', 'عاصمة', 'ملك', 'رئيس', 'منتخب', 'فريق', 'نادي'];
-    
-    // التحقق من أن الإجابة ليست مجرد كلمة عامة
-    if (userWords.length === 1 && commonWords.includes(userWords[0])) {
+    // التحقق من الإجابة الفارغة
+    if (!userAnswer || userAnswer.trim() === '') {
         return false;
     }
 
-    // إزالة الكلمات العامة من الإجابة الصحيحة والإجابة المدخلة
-    const cleanCorrectWords = correctWords.filter(word => !commonWords.includes(word));
-    const cleanUserWords = userWords.filter(word => !commonWords.includes(word));
-    
-    // إزالة "ال" من الكلمات للمقارنة
-    const normalizeWord = (word) => word.replace(/^ال/, '');
-    
-    // تحويل الكلمات إلى صيغة موحدة
-    const normalizedCorrectWords = cleanCorrectWords.map(normalizeWord);
-    const normalizedUserWords = cleanUserWords.map(normalizeWord);
+    // تنظيف وتوحيد صيغة النصوص
+    const normalizeText = (text) => {
+        return text
+            .trim()
+            .toLowerCase()
+            .replace(/[ًٌٍَُِّْـ]/g, '') // إزالة التشكيل
+            .replace(/[أإآ]/g, 'ا') // توحيد الألف
+            .replace(/[ة]/g, 'ه') // توحيد التاء المربوطة
+            .replace(/[ى]/g, 'ي') // توحيد الياء
+            .replace(/[؟.,!]/g, '') // إزالة علامات الترقيم
+            .replace(/\s+/g, ' '); // توحيد المسافات
+    };
 
-    // التحقق من تطابق أي كلمة أساسية
-    return normalizedUserWords.some(userWord => 
-        normalizedCorrectWords.some(correctWord => 
-            userWord === correctWord || 
-            correctWord.includes(userWord) || 
-            userWord.includes(correctWord)
-        )
-    );
+    const normalizedUserAnswer = normalizeText(userAnswer);
+    const normalizedCorrectAnswer = normalizeText(correctAnswer);
+    
+    // الكلمات العامة التي لا تعتبر إجابة صحيحة بمفردها
+    const commonWords = [
+        'ال', 'في', 'من', 'على', 'الى', 'عن', 'مع',
+        'نهر', 'جبل', 'مدينة', 'بحر', 'دولة', 'قارة',
+        'عاصمة', 'ملك', 'رئيس', 'منتخب', 'فريق', 'نادي',
+        'عالم', 'شخص', 'شخصية', 'حدث', 'معركة', 'هو', 'هي'
+    ];
+    
+    // تقسيم النصوص إلى كلمات
+    const userWords = normalizedUserAnswer.split(' ').filter(word => word.length > 1);
+    const correctWords = normalizedCorrectAnswer.split(' ').filter(word => word.length > 1);
+    
+    // التحقق من أن الإجابة ليست مجرد كلمات عامة
+    const hasOnlyCommonWords = userWords.every(word => commonWords.includes(word));
+    if (hasOnlyCommonWords) {
+        return false;
+    }
+
+    // إزالة الكلمات العامة
+    const cleanUserWords = userWords.filter(word => !commonWords.includes(word));
+    const cleanCorrectWords = correctWords.filter(word => !commonWords.includes(word));
+
+    // إذا لم تبق أي كلمات بعد التنظيف
+    if (cleanUserWords.length === 0) {
+        return false;
+    }
+
+    // البحث عن تطابق الكلمات
+    for (const userWord of cleanUserWords) {
+        for (const correctWord of cleanCorrectWords) {
+            // التطابق المباشر
+            if (userWord === correctWord) {
+                return true;
+            }
+            
+            // التطابق الجزئي (إذا كانت الكلمة جزءاً من الإجابة الصحيحة)
+            if (correctWord.includes(userWord) && userWord.length > 2) {
+                return true;
+            }
+            
+            // التطابق العكسي (إذا كانت الإجابة الصحيحة جزءاً من إجابة المستخدم)
+            if (userWord.includes(correctWord) && correctWord.length > 2) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
