@@ -125,55 +125,97 @@ function initializeGameControls() {
 // تهيئة لوحة اللعب
 function initializeGame() {
     const gameBoard = document.querySelector('.game-board');
-    gameBoard.innerHTML = '<div class="categories-container"></div>';
-    const categoriesContainer = gameBoard.querySelector('.categories-container');
-    
-    // إنشاء عمود لكل فئة
+    gameBoard.innerHTML = '';
+
+    // إنشاء لوحة اللعب
     selectedCategories.forEach(category => {
-        const categoryColumn = document.createElement('div');
-        categoryColumn.className = 'category-column';
-        categoryColumn.dataset.category = category;
+        // إنشاء عنصر الفئة
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'category';
         
         // إضافة عنوان الفئة
-        const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'category';
-        categoryHeader.textContent = category;
-        categoryColumn.appendChild(categoryHeader);
-        
-        // إضافة حاوية للبطاقات
+        const categoryTitle = document.createElement('div');
+        categoryTitle.className = 'category-title';
+        categoryTitle.textContent = category;
+        categoryDiv.appendChild(categoryTitle);
+
+        // إنشاء بطاقات الأسئلة
         const categoryAnswers = document.createElement('div');
         categoryAnswers.className = 'category-answers';
         
-        // إضافة البطاقات مرتبة حسب النقاط
+        // النقاط المتاحة لكل فئة
         const points = [100, 200, 300, 400, 500];
-        points.forEach(pointValue => {
-            const item = gameData[category][pointValue];
-            if (item) {
-                const answerCard = document.createElement('div');
-                answerCard.className = 'answer-card';
-                answerCard.textContent = item.points;
-                answerCard.dataset.category = category;
-                answerCard.dataset.index = pointValue;
-                
-                if (completedAnswers.has(`${category}-${answerCard.dataset.index}`)) {
-                    answerCard.classList.add('completed');
-                }
-                
-                answerCard.addEventListener('click', () => {
-                    if (!answerCard.classList.contains('completed')) {
-                        showAnswer(category, answerCard.dataset.index);
-                    }
-                });
-                
-                categoryAnswers.appendChild(answerCard);
-            }
-        });
         
-        categoryColumn.appendChild(categoryAnswers);
-        categoriesContainer.appendChild(categoryColumn);
+        points.forEach(pointValue => {
+            const answerCard = document.createElement('div');
+            answerCard.className = 'answer-card';
+            if (!completedAnswers.has(`${category}-${pointValue}`)) {
+                answerCard.textContent = pointValue;
+                answerCard.addEventListener('click', () => showQuestion(category, pointValue));
+            } else {
+                answerCard.classList.add('completed');
+                answerCard.textContent = '✓';
+            }
+            answerCard.dataset.category = category;
+            answerCard.dataset.points = pointValue;
+            categoryAnswers.appendChild(answerCard);
+        });
+
+        categoryDiv.appendChild(categoryAnswers);
+        gameBoard.appendChild(categoryDiv);
     });
 
-    updatePlayersList();
+    updateUI();
+}
+
+// عرض السؤال
+function showQuestion(category, points) {
+    const questionData = gameData[category][points];
+    if (!questionData) return;
+
+    const modal = document.getElementById('answer-modal');
+    const questionDiv = modal.querySelector('.question');
+    const answerInput = modal.querySelector('#answer-input');
+    
+    // عرض السؤال
+    questionDiv.textContent = questionData.question;
+    
+    // إعادة تعيين حقل الإدخال
+    answerInput.value = '';
+    
+    // إضافة مستمع الحدث لزر التحقق
+    const submitButton = modal.querySelector('#submit-answer');
+    submitButton.onclick = () => checkAnswer(category, points, answerInput.value);
+    
+    // عرض النافذة المنبثقة
+    modal.style.display = 'block';
+    answerInput.focus();
+}
+
+// التحقق من الإجابة
+function checkAnswer(category, points, userAnswer) {
+    const correctAnswer = gameData[category][points].answer;
+    const isCorrect = compareAnswers(userAnswer, correctAnswer);
+    
+    if (isCorrect) {
+        // إضافة النقاط للاعب الحالي
+        players[currentPlayerIndex].score += points;
+        alert('إجابة صحيحة! 🎉');
+        
+        // تحديث حالة البطاقة
+        completedAnswers.add(`${category}-${points}`);
+    } else {
+        alert(`إجابة خاطئة. الإجابة الصحيحة هي: ${correctAnswer}`);
+    }
+    
+    // إغلاق النافذة المنبثقة
+    document.getElementById('answer-modal').style.display = 'none';
+    
+    // تحديث دور اللاعب
+    currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    
+    // تحديث واجهة المستخدم
+    updateUI();
 }
 
 // إعادة تعيين اللعبة بالكامل
@@ -236,12 +278,12 @@ function updateGameBoard() {
     if (!gameBoard) return;
 
     // تحديث حالة البطاقات المكتملة
-    const cards = gameBoard.querySelectorAll('.card');
+    const cards = gameBoard.querySelectorAll('.answer-card');
     cards.forEach(card => {
-        const cardId = card.dataset.cardId;
+        const cardId = card.dataset.category + '-' + card.dataset.points;
         if (completedAnswers.has(cardId)) {
             card.classList.add('completed');
-            card.disabled = true;
+            card.textContent = '✓';
         }
     });
 
@@ -283,133 +325,6 @@ function showSettingsModal() {
     const modal = document.getElementById('settings-modal');
     modal.style.display = 'block';
     initializeSettings();
-}
-
-// عرض نافذة السؤال
-function showAnswer(category, index) {
-    const modal = document.getElementById('answer-modal');
-    const data = gameData[category][index];
-    
-    // تحديث محتوى النافذة المنبثقة
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close" onclick="closeAnswerModal()">&times;</span>
-            <h2>${category}</h2>
-            <p class="points">${data.points} نقطة</p>
-            <p class="question">${data.answer}</p>
-            <div class="answer-input">
-                <input type="text" id="user-answer" placeholder="أدخل إجابتك هنا" dir="rtl">
-                <button onclick="submitAnswer('${category}', ${index})">تحقق</button>
-            </div>
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-    
-    // التركيز على حقل الإدخال
-    const input = document.getElementById('user-answer');
-    input.focus();
-    
-    // إضافة مستمع لمفتاح Enter
-    input.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            submitAnswer(category, index);
-        }
-    });
-    
-    // إغلاق النافذة عند النقر خارجها
-    window.onclick = function(event) {
-        if (event.target === modal) {
-            closeAnswerModal();
-        }
-    };
-}
-
-// إغلاق نافذة السؤال
-function closeAnswerModal() {
-    const modal = document.getElementById('answer-modal');
-    modal.style.display = 'none';
-    modal.innerHTML = ''; // تنظيف محتوى النافذة
-}
-
-// تقديم الإجابة
-function submitAnswer(category, index) {
-    const userAnswer = document.getElementById('user-answer').value;
-    checkAnswer(category, index, userAnswer);
-    closeAnswerModal();
-}
-
-// التحقق من صحة السؤال
-function checkAnswer(category, index, userQuestion) {
-    const data = gameData[category][index];
-    const cardId = `${category}-${index}`;
-    
-    // التحقق من أن الإجابة غير فارغة
-    if (!userQuestion || userQuestion.trim() === '') {
-        alert('يرجى إدخال إجابة!');
-        return;
-    }
-    
-    // تنظيف وتحويل النصوص للمقارنة
-    const normalizedUserQuestion = userQuestion.trim().toLowerCase().replace(/[؟.,!]/g, '');
-    const normalizedCorrectQuestion = data.question.toLowerCase().replace(/[؟.,!]/g, '');
-    
-    // تقسيم الإجابة الصحيحة والإجابة المدخلة إلى كلمات
-    const correctWords = normalizedCorrectQuestion.split(/\s+/);
-    const userWords = normalizedUserQuestion.split(/\s+/);
-
-    // الكلمات العامة التي لا تعتبر إجابة صحيحة بمفردها
-    const commonWords = ['نهر', 'جبل', 'مدينة', 'بحر', 'دولة', 'قارة', 'عاصمة', 'ملك', 'رئيس', 'منتخب', 'فريق', 'نادي'];
-    
-    // التحقق من أن الإجابة ليست مجرد كلمة عامة
-    if (userWords.length === 1 && commonWords.includes(userWords[0])) {
-        alert('الإجابة غير كافية، يرجى تحديد ' + userWords[0] + ' بشكل أكثر دقة');
-        return;
-    }
-
-    // إزالة الكلمات العامة من الإجابة الصحيحة والإجابة المدخلة
-    const cleanCorrectWords = correctWords.filter(word => !commonWords.includes(word));
-    const cleanUserWords = userWords.filter(word => !commonWords.includes(word));
-    
-    // إزالة "ال" من الكلمات للمقارنة
-    const normalizeWord = (word) => word.replace(/^ال/, '');
-    
-    // تحويل الكلمات إلى صيغة موحدة
-    const normalizedCorrectWords = cleanCorrectWords.map(normalizeWord);
-    const normalizedUserWords = cleanUserWords.map(normalizeWord);
-
-    // التحقق من تطابق أي كلمة أساسية
-    const isCorrect = normalizedUserWords.some(userWord => 
-        normalizedCorrectWords.some(correctWord => 
-            userWord === correctWord || 
-            correctWord.includes(userWord) || 
-            userWord.includes(correctWord)
-        )
-    );
-
-    if (isCorrect) {
-        players[currentPlayerIndex].score += data.points;
-        alert('إجابة صحيحة! \nالإجابة الكاملة هي: ' + data.question);
-    } else {
-        alert('للأسف، الإجابة غير صحيحة. الإجابة الصحيحة هي: ' + data.question);
-    }
-
-    // تحديث حالة البطاقة والفئة
-    completedAnswers.add(cardId);
-    const categoryColumn = document.querySelector(`[data-category="${category}"]`);
-    const answerCards = categoryColumn.querySelectorAll('.answer-card');
-    const card = answerCards[index];
-    card.classList.add('completed');
-
-    // التحقق مما إذا كانت جميع بطاقات الفئة مكتملة
-    const allCardsCompleted = Array.from(answerCards).every(card => card.classList.contains('completed'));
-    if (allCardsCompleted) {
-        categoryColumn.classList.add('all-completed');
-    }
-    
-    // تغيير دور اللاعب
-    currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    updatePlayersList();
 }
 
 // تحديث قائمة اللاعبين
@@ -501,3 +416,41 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeGameControls();
     initializeGame();
 });
+
+// مقارنة الإجابات
+function compareAnswers(userAnswer, correctAnswer) {
+    const normalizedUserAnswer = userAnswer.trim().toLowerCase().replace(/[؟.,!]/g, '');
+    const normalizedCorrectAnswer = correctAnswer.toLowerCase().replace(/[؟.,!]/g, '');
+    
+    // تقسيم الإجابة الصحيحة والإجابة المدخلة إلى كلمات
+    const correctWords = normalizedCorrectAnswer.split(/\s+/);
+    const userWords = normalizedUserAnswer.split(/\s+/);
+
+    // الكلمات العامة التي لا تعتبر إجابة صحيحة بمفردها
+    const commonWords = ['نهر', 'جبل', 'مدينة', 'بحر', 'دولة', 'قارة', 'عاصمة', 'ملك', 'رئيس', 'منتخب', 'فريق', 'نادي'];
+    
+    // التحقق من أن الإجابة ليست مجرد كلمة عامة
+    if (userWords.length === 1 && commonWords.includes(userWords[0])) {
+        return false;
+    }
+
+    // إزالة الكلمات العامة من الإجابة الصحيحة والإجابة المدخلة
+    const cleanCorrectWords = correctWords.filter(word => !commonWords.includes(word));
+    const cleanUserWords = userWords.filter(word => !commonWords.includes(word));
+    
+    // إزالة "ال" من الكلمات للمقارنة
+    const normalizeWord = (word) => word.replace(/^ال/, '');
+    
+    // تحويل الكلمات إلى صيغة موحدة
+    const normalizedCorrectWords = cleanCorrectWords.map(normalizeWord);
+    const normalizedUserWords = cleanUserWords.map(normalizeWord);
+
+    // التحقق من تطابق أي كلمة أساسية
+    return normalizedUserWords.some(userWord => 
+        normalizedCorrectWords.some(correctWord => 
+            userWord === correctWord || 
+            correctWord.includes(userWord) || 
+            userWord.includes(correctWord)
+        )
+    );
+}
