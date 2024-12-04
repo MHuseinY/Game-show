@@ -219,7 +219,9 @@ function checkAnswer(category, points, userAnswer) {
         // تحديث حالة البطاقة
         completedAnswers.add(`${category}-${points}`);
     } else {
-        alert(`إجابة خاطئة.\nالإجابة الصحيحة هي: ${correctAnswer}`);
+        alert('إجابة خاطئة! ❌');
+        // إضافة السؤال إلى الأسئلة المكتملة
+        completedAnswers.add(`${category}-${points}`);
     }
     
     // إغلاق النافذة المنبثقة
