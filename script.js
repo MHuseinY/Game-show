@@ -187,6 +187,13 @@ function showQuestion(category, points) {
     const submitButton = modal.querySelector('#submit-answer');
     submitButton.onclick = () => checkAnswer(category, points, answerInput.value);
     
+    // إضافة مستمع لمفتاح Enter
+    answerInput.onkeypress = (event) => {
+        if (event.key === 'Enter') {
+            checkAnswer(category, points, answerInput.value);
+        }
+    };
+    
     // عرض النافذة المنبثقة
     modal.style.display = 'block';
     answerInput.focus();
@@ -194,6 +201,12 @@ function showQuestion(category, points) {
 
 // التحقق من الإجابة
 function checkAnswer(category, points, userAnswer) {
+    // التحقق من الإجابة الفارغة
+    if (!userAnswer || userAnswer.trim() === '') {
+        alert('يرجى إدخال إجابة!');
+        return;
+    }
+
     const correctAnswer = gameData[category][points].answer;
     const isCorrect = compareAnswers(userAnswer, correctAnswer);
     
@@ -204,18 +217,27 @@ function checkAnswer(category, points, userAnswer) {
         
         // تحديث حالة البطاقة
         completedAnswers.add(`${category}-${points}`);
+        
+        // إغلاق النافذة المنبثقة
+        closeModal(document.getElementById('answer-modal'));
+        
+        // تحديث دور اللاعب
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        
+        // تحديث واجهة المستخدم
+        updateUI();
     } else {
         alert(`إجابة خاطئة. الإجابة الصحيحة هي: ${correctAnswer}`);
+        
+        // إغلاق النافذة المنبثقة
+        closeModal(document.getElementById('answer-modal'));
+        
+        // تحديث دور اللاعب
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        
+        // تحديث واجهة المستخدم
+        updateUI();
     }
-    
-    // إغلاق النافذة المنبثقة
-    document.getElementById('answer-modal').style.display = 'none';
-    
-    // تحديث دور اللاعب
-    currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    
-    // تحديث واجهة المستخدم
-    updateUI();
 }
 
 // إعادة تعيين اللعبة بالكامل
@@ -411,9 +433,43 @@ function initializeSettings() {
     });
 }
 
+// إضافة مستمعي الأحداث للنوافذ المنبثقة
+function initializeModals() {
+    // إضافة مستمعي الأحداث لأزرار الإغلاق
+    const closeButtons = document.querySelectorAll('.modal .close');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const modal = button.closest('.modal');
+            closeModal(modal);
+        });
+    });
+
+    // إغلاق النافذة عند النقر خارجها
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal(modal);
+            }
+        });
+    });
+}
+
+// إغلاق النافذة المنبثقة
+function closeModal(modal) {
+    modal.style.display = 'none';
+    if (modal.id === 'answer-modal') {
+        const answerInput = modal.querySelector('#answer-input');
+        if (answerInput) {
+            answerInput.value = '';
+        }
+    }
+}
+
 // بدء اللعبة
 document.addEventListener('DOMContentLoaded', () => {
     initializeGameControls();
+    initializeModals();
     initializeGame();
 });
 
